@@ -177,6 +177,8 @@
     <Compile Include="Uitility\DatabaseUtility.cs" />
     <Compile Include="Uitility\ExcelReader.cs" />
     <Compile Include="Uitility\ExportIDNameExcelUtility.cs" />
+    <Compile Include="Uitility\FamilyVisitDataBuilder.cs" />
+    <Compile Include="Uitility\FamilyVisitExportUtility.cs" />
     <Compile Include="Uitility\LogUtility.cs" />
     <Compile Include="Uitility\MergeUtility.cs" />
     <Compile Include="Uitility\NetSplitExcelUtility.cs" />

@@ -1,0 +1,32 @@
+<Project>
+  <PropertyGroup>
+    <BaseOutputPath>$([System.IO.Path]::GetTempPath())zf-family-test/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$([System.IO.Path]::GetTempPath())zf-family-test/obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../ZFApplication/Uitility/FamilyVisitDataBuilder.cs" Link="FamilyVisitDataBuilder.cs" />
+    <Compile Include="../../ZFApplication/Uitility/FamilyVisitExportUtility.cs" Link="FamilyVisitExportUtility.cs" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="EPPlus">
+      <HintPath>../../packages/EPPlus.7.1.0/lib/net8.0/EPPlus.dll</HintPath>
+    </Reference>
+    <Reference Include="EPPlus.Interfaces">
+      <HintPath>../../packages/EPPlus.Interfaces.6.1.1/lib/net6.0/EPPlus.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="EPPlus.System.Drawing">
+      <HintPath>../../packages/EPPlus.System.Drawing.6.1.1/lib/net6.0/EPPlus.System.Drawing.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IO.RecyclableMemoryStream">
+      <HintPath>../../packages/Microsoft.IO.RecyclableMemoryStream.3.0.0/lib/net6.0/Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>

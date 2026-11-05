@@ -742,12 +742,72 @@ namespace ZFApplication
             }
         }
 
-        private void FamilyButtonItem_ItemClick(object sender, ItemClickEventArgs e)
+        private async void FamilyButtonItem_ItemClick(object sender, ItemClickEventArgs e)
         {
-            FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-            if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
+            PathUtility.setcurrentpath();
+            string databasePath = SystemUtility.GetSystemValues("FilePath");
+            if (!File.Exists(databasePath))
             {
-                //导出家访表格
+                XtraMessageBox.Show(this, "请先打开有效的招飞项目。", "导出家访表格");
+                return;
+            }
+
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "选择家访表格的保存文件夹（每个省份一个 Excel 文件）";
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                string outputFolder = dialog.SelectedPath;
+                int year = DateTime.Now.Year;
+                FamilyButtonItem.Enabled = false;
+                UseWaitCursor = true;
+                try
+                {
+                    FamilyVisitExportResult result = await Task.Run(() =>
+                    {
+                        const string personSql = @"select [No],[ObjName],[Name],[Title],[AddrType],
+                            [Address],[CityID],[PhoneNum],[IsReal],[IsDelete] from Person
+                            where [IsDelete]=0 and [IsReal]=1
+                            and [Title] in ('本人','父亲','母亲','继父','继母') order by [ID]";
+                        using (DataSet people = AccessDB.Query(databasePath, personSql, null))
+                        using (DataSet cities = AccessDB.Query(databasePath,
+                            "select [ID],[ParentID],[Name],[ShortName] from City", null))
+                        {
+                            if (people == null || people.Tables.Count == 0 || cities == null || cities.Tables.Count == 0)
+                                throw new InvalidOperationException("无法读取线索表或行政区数据，请检查项目数据库。");
+                            return FamilyVisitExportUtility.Export(people.Tables[0], cities.Tables[0], outputFolder, year);
+                        }
+                    });
+
+                    string message = result.Files.Count == 0
+                        ? "没有可导出的家访数据。"
+                        : "家访表格导出完成，共 " + result.Files.Count + " 个省份、" + result.StudentCount
+                            + " 名招飞对象。\r\n保存位置：" + outputFolder;
+                    if (result.Warnings.Count > 0)
+                    {
+                        foreach (string warning in result.Warnings)
+                            LogUtility.Log("家访导出：" + warning);
+                        message += "\r\n\r\n请核对以下数据（共 " + result.Warnings.Count + " 项）：\r\n"
+                            + string.Join("\r\n", result.Warnings.Take(8));
+                        if (result.Warnings.Count > 8)
+                            message += "\r\n其余问题已记录到程序日志。";
+                    }
+                    XtraMessageBox.Show(this, message, "导出家访表格", MessageBoxButtons.OK,
+                        result.Warnings.Count == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                }
+                catch (Exception exception)
+                {
+                    LogUtility.Log("家访表格导出失败：" + exception);
+                    XtraMessageBox.Show(this, "家访表格导出失败：" + exception.Message
+                        + "\r\n部分省份可能已导出，请检查保存目录：" + outputFolder,
+                        "导出家访表格", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    UseWaitCursor = false;
+                    FamilyButtonItem.Enabled = true;
+                }
             }
         }
     }
