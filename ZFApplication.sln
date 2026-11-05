@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35514.174 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZFApplication", "ZFApplication\ZFApplication.csproj", "{8EFBD647-CDEF-4E82-8840-649E8F97354C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SendEmailApp", "SendEmailApp\SendEmailApp.csproj", "{517C4E57-E165-4211-A04F-AEECFC0C689A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8EFBD647-CDEF-4E82-8840-649E8F97354C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8EFBD647-CDEF-4E82-8840-649E8F97354C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8EFBD647-CDEF-4E82-8840-649E8F97354C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8EFBD647-CDEF-4E82-8840-649E8F97354C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{517C4E57-E165-4211-A04F-AEECFC0C689A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{517C4E57-E165-4211-A04F-AEECFC0C689A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{517C4E57-E165-4211-A04F-AEECFC0C689A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{517C4E57-E165-4211-A04F-AEECFC0C689A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6229CA6D-2C66-4B3D-8BFA-B5C7E23F4AB8}
+	EndGlobalSection
+EndGlobal
