@@ -58,6 +58,7 @@ namespace ZFApplication
             this.OutputCheck = new DevExpress.XtraBars.BarButtonItem();
             this.JNetExport = new DevExpress.XtraBars.BarButtonItem();
             this.JNetExport_New = new DevExpress.XtraBars.BarButtonItem();
+            this.PicReName = new DevExpress.XtraBars.BarButtonItem();
             this.ribbonPage1 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             this.Project = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             this.ribbonPageGroup2 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -81,7 +82,7 @@ namespace ZFApplication
             this.DeleteElementItem = new DevExpress.XtraBars.Navigation.AccordionControlElement();
             this.tabbedView = new DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView(this.components);
             this.mDocumentManager = new DevExpress.XtraBars.Docking2010.DocumentManager(this.components);
-            this.PicReName = new DevExpress.XtraBars.BarButtonItem();
+            this.FamilyButtonItem = new DevExpress.XtraBars.BarButtonItem();
             ((System.ComponentModel.ISupportInitialize)(this.ribbonControl)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dockManager)).BeginInit();
             this.mNavPanel.SuspendLayout();
@@ -124,9 +125,10 @@ namespace ZFApplication
             this.OutputCheck,
             this.JNetExport,
             this.JNetExport_New,
-            this.PicReName});
+            this.PicReName,
+            this.FamilyButtonItem});
             this.ribbonControl.Location = new System.Drawing.Point(0, 0);
-            this.ribbonControl.MaxItemId = 69;
+            this.ribbonControl.MaxItemId = 70;
             this.ribbonControl.MdiMergeStyle = DevExpress.XtraBars.Ribbon.RibbonMdiMergeStyle.Always;
             this.ribbonControl.Name = "ribbonControl";
             this.ribbonControl.OptionsMenuMinWidth = 385;
@@ -367,6 +369,16 @@ namespace ZFApplication
             this.JNetExport_New.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
             this.JNetExport_New.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.JNetExport_New_ItemClick);
             // 
+            // PicReName
+            // 
+            this.PicReName.Caption = "照片改名";
+            this.PicReName.Id = 68;
+            this.PicReName.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("PicReName.ImageOptions.Image")));
+            this.PicReName.ImageOptions.LargeImage = ((System.Drawing.Image)(resources.GetObject("PicReName.ImageOptions.LargeImage")));
+            this.PicReName.Name = "PicReName";
+            this.PicReName.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.PicReName.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.PicReName_ItemClick);
+            // 
             // ribbonPage1
             // 
             this.ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] {
@@ -397,6 +409,7 @@ namespace ZFApplication
             this.ribbonPageGroup2.ItemLinks.Add(this.JNetExport);
             this.ribbonPageGroup2.ItemLinks.Add(this.JNetExport_New);
             this.ribbonPageGroup2.ItemLinks.Add(this.PicReName);
+            this.ribbonPageGroup2.ItemLinks.Add(this.FamilyButtonItem);
             this.ribbonPageGroup2.Name = "ribbonPageGroup2";
             this.ribbonPageGroup2.Text = "导出";
             // 
@@ -572,15 +585,15 @@ namespace ZFApplication
             this.mDocumentManager.ViewCollection.AddRange(new DevExpress.XtraBars.Docking2010.Views.BaseView[] {
             this.tabbedView});
             // 
-            // PicReName
+            // FamilyButtonItem
             // 
-            this.PicReName.Caption = "照片改名";
-            this.PicReName.Id = 68;
-            this.PicReName.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.Image")));
-            this.PicReName.ImageOptions.LargeImage = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.LargeImage")));
-            this.PicReName.Name = "PicReName";
-            this.PicReName.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
-            this.PicReName.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.PicReName_ItemClick);
+            this.FamilyButtonItem.Caption = "家访表格";
+            this.FamilyButtonItem.Id = 69;
+            this.FamilyButtonItem.ImageOptions.Image = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.Image")));
+            this.FamilyButtonItem.ImageOptions.LargeImage = ((System.Drawing.Image)(resources.GetObject("barButtonItem1.ImageOptions.LargeImage")));
+            this.FamilyButtonItem.Name = "FamilyButtonItem";
+            this.FamilyButtonItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            this.FamilyButtonItem.ItemClick += new DevExpress.XtraBars.ItemClickEventHandler(this.FamilyButtonItem_ItemClick);
             // 
             // MainView
             // 
@@ -662,5 +675,6 @@ namespace ZFApplication
         private DevExpress.XtraBars.BarButtonItem JNetExport;
         private DevExpress.XtraBars.BarButtonItem JNetExport_New;
         private DevExpress.XtraBars.BarButtonItem PicReName;
+        private DevExpress.XtraBars.BarButtonItem FamilyButtonItem;
     }
 }
