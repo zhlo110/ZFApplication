@@ -72,7 +72,7 @@
             this.labelControl2.Name = "labelControl2";
             this.labelControl2.Size = new System.Drawing.Size(485, 27);
             this.labelControl2.TabIndex = 2;
-            this.labelControl2.Text = "空军招飞局成都选拔中心-政审系统V1.6";
+            this.labelControl2.Text = "空军招飞局成都选拔中心-政审系统V1.7";
             this.labelControl2.Click += new System.EventHandler(this.labelControl2_Click);
             // 
             // LoginForm

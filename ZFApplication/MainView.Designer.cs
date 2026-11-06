@@ -607,7 +607,7 @@ namespace ZFApplication
             this.Name = "MainView";
             this.Ribbon = this.ribbonControl;
             this.StatusBar = this.ribbonStatusBar;
-            this.Text = "空军招飞局成都选拔中心-政审系统V1.6";
+            this.Text = "空军招飞局成都选拔中心-政审系统V1.7";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainView_FormClosed);
             this.Load += new System.EventHandler(this.MainView_Load);
