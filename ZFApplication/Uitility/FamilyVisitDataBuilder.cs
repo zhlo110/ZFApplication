@@ -149,10 +149,10 @@ namespace ZFApplication.Uitility
                             return school.Length == 0 ? district : school +
                                 (district.Length == 0 || district == school ? "" : "\r\n" + district);
                         })),
-                        RegisteredAddress = GetParentDistricts(rows, "户口所在地", province, cityLookup, warn),
+                        RegisteredAddress = GetFamilyDistricts(rows, Titles, "户口所在地", province, cityLookup, warn),
                         HomeAddress = JoinDistinct(Select(rows, "本人", "经常居住地")
                             .Select(row => GetDistrict(row, province, cityLookup, warn, "本人经常居住地"))),
-                        ParentWork = GetParentDistricts(rows, "工作单位及职务", province, cityLookup, warn),
+                        ParentWork = GetFamilyDistricts(rows, Titles.Skip(1), "工作单位及职务", province, cityLookup, warn),
                         Phone = GetParentPhones(rows)
                     };
                     result.Groups.Add(group);
@@ -173,11 +173,11 @@ namespace ZFApplication.Uitility
             return rows.Where(row => GetText(row, "Title") == title && GetText(row, "AddrType") == addressType);
         }
 
-        private static string GetParentDistricts(List<DataRow> rows, string addressType, string province,
+        private static string GetFamilyDistricts(List<DataRow> rows, IEnumerable<string> titles, string addressType, string province,
             CityLookup lookup, Action<string> warn)
         {
             List<string> lines = new List<string>();
-            foreach (string title in Titles.Skip(1))
+            foreach (string title in titles)
             {
                 foreach (string address in Select(rows, title, addressType)
                     .Select(row => GetDistrict(row, province, lookup, warn, title + addressType))

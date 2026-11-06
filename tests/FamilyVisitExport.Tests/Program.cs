@@ -86,11 +86,15 @@ internal static class Program
         Assert(guiYang.Cells[target, 3].Text.Contains("第一中学"), "school comes from the student's work/school row");
         Assert(guiYang.Cells[target, 3].Text.Contains("南明区"), "school location included");
         string registered = guiYang.Cells[target, 4].Text;
+        Assert(registered.StartsWith("本人:贵阳市南明区\n", StringComparison.Ordinal), "registration column includes student's local household district first");
+        Assert(registered.Split('\n').Select(line => line.Split(':')[0])
+            .SequenceEqual(new[] { "本人", "父亲", "母亲", "继父", "继母" }), "registration relationships follow student, father, mother, step-father, step-mother order");
         Assert(registered.Contains("父亲") && registered.Contains("母亲") && registered.Contains("继父") && registered.Contains("继母"), "all four parent relationships included");
         Assert(registered.Contains("青羊区"), "out-of-province parent registration retained on student's row");
         Assert(registered.Split('\n').Count(s => s.Contains("父亲")) == 1, "duplicate parent rows deduplicated");
         Assert(guiYang.Cells[target, 5].Text.Contains("南明区"), "family residence populated");
         Assert(guiYang.Cells[target, 6].Text.Contains("父亲") && guiYang.Cells[target, 6].Text.Contains("母亲"), "both parents' workplaces populated");
+        Assert(!guiYang.Cells[target, 6].Text.Contains("本人:"), "adding student's registration does not add student to parent workplace column");
         Assert(guiYang.Cells[target, 7].Text.Contains("13000000002") && guiYang.Cells[target, 7].Text.Contains("13000000003"), "both parents' phone numbers included");
         Assert(!guiYang.Cells[target, 7].Text.Contains("13000000001"), "phone column matches template parent-only convention");
         Assert(guiYang.Cells[target, 8].Value is string && guiYang.Cells[target, 8].Text == "0001", "leading-zero political review number remains text");
@@ -102,7 +106,12 @@ internal static class Program
         Assert(sheets.Any(s => FindRowOrZero(s, "重庆考生", "0030") > 0), "direct-administered municipality exports");
         ExcelWorksheet chengDu = sheets.Single(s => s.Name == "成都市");
         Assert(FindRowOrZero(chengDu, "同名考生", "0001") > 0, "cross-province mother also adds student in her province");
+        int studentOnly = FindRow(chengDu, "四川考生", "0040");
+        Assert(chengDu.Cells[studentOnly, 4].Text == "本人:成都市青羊区", "student with no parent clues still has household registration in the column");
         Assert(FindRowOrZero(guiYang, "缺户籍考生", "0050") > 0, "known parent registration retained when student registration is absent");
+        int withoutStudentHome = FindRow(guiYang, "缺户籍考生", "0050");
+        Assert(!guiYang.Cells[withoutStudentHome, 4].Text.Contains("本人:")
+            && guiYang.Cells[withoutStudentHome, 4].Text.Contains("父亲:"), "missing student's registration does not create an empty student entry");
         Assert(FindRowOrZero(zunYi, "同名考生", "0001") == 0, "same-province parent in another municipality does not duplicate student");
         foreach (ExcelWorksheet sheet in sheets)
         {
@@ -172,6 +181,7 @@ internal static class Program
         Assert(warnings.Contains("空编号考生") && warnings.Contains("1004"), "missing grouping identifiers reported");
         ExcelWorksheet sheet = OpenSheets(result.Files).Single();
         Assert(CountRows(sheet) == 1, "duplicate real student registration produces one row");
+        Assert(sheet.Cells[3, 4].Text.Split('\n').Count(line => line.StartsWith("本人:", StringComparison.Ordinal)) == 1, "duplicate real student registration appears once in household column");
         Assert(sheet.Cells[3, 4].Text.Contains("无法识别的父亲户籍原地址"), "unknown parent administrative district retains original source address");
         Assert(sheet.Cells[3, 3].Formula.Length == 0 && sheet.Cells[3, 3].Text.Contains("=SUM(1,2)"), "formula-like school source is exported as plain text");
     }
@@ -214,6 +224,7 @@ internal static class Program
         ExcelWorksheet chengDu = sheets.Single(s => s.Name == "成都市");
         Assert(guiYang.Cells[3, 4].Text.Contains("四川省成都市") && guiYang.Cells[3, 4].Text.Contains("云南省昆明市"), "student province row retains all out-of-province parent registration with province names");
         Assert(chengDu.Cells[3, 4].Text.Contains("父亲:成都市青羊区") && !chengDu.Cells[3, 4].Text.Contains("父亲:四川省成都市"), "parent province row formats its local parent registration relative to that province");
+        Assert(chengDu.Cells[3, 4].Text.StartsWith("本人:贵州省贵阳市南明区\n", StringComparison.Ordinal), "parent's external province row keeps student's household province name");
         Assert(chengDu.Cells[3, 3].Text.Contains("贵州省贵阳市南明区") && chengDu.Cells[3, 5].Text.Contains("贵州省贵阳市南明区"), "external province row includes student's school and home province");
         Assert(chengDu.Cells[3, 6].Text.Contains("父亲:贵州省贵阳市南明区") && chengDu.Cells[3, 6].Text.Contains("母亲:成都市青羊区"), "parent workplace districts are reformatted for each destination province");
         Assert(sheets.All(s => s.Cells[1, 1].Text.Contains("家访1人") && s.Cells[3, 1].GetValue<int>() == 1), "each external city title and sequence reflect one local row");
