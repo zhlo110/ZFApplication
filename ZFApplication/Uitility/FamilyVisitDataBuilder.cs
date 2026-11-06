@@ -23,6 +23,7 @@ namespace ZFApplication.Uitility
         public string Province { get; set; }
         public string Region { get; set; }
         public string Number { get; set; }
+        public string ObjectName { get; set; }
         public string Name { get; set; }
         public string School { get; set; }
         public string RegisteredAddress { get; set; }
@@ -73,10 +74,7 @@ namespace ZFApplication.Uitility
                 List<DataRow> rows = family.ToList();
                 List<DataRow> studentHomes = Select(rows, "本人", "户口所在地").ToList();
                 if (studentHomes.Count == 0)
-                {
-                    warn("缺少本人真实户口所在地记录，无法确定省份和地区，未导出该组。");
-                    continue;
-                }
+                    warn("缺少本人真实户口所在地记录，将按已知父母户籍地点列出。");
 
                 List<List<CityInfo>> homePaths = new List<List<CityInfo>>();
                 foreach (DataRow home in studentHomes)
@@ -88,51 +86,86 @@ namespace ZFApplication.Uitility
                     else
                         homePaths.Add(path);
                 }
-                if (homePaths.Count == 0)
-                {
-                    warn("本人户口所在地没有可用的行政区，未导出该组。");
-                    continue;
-                }
+                if (studentHomes.Count > 0 && homePaths.Count == 0)
+                    warn("本人户口所在地没有可用的行政区，将按已知父母户籍地点列出。");
 
                 List<IGrouping<string, List<CityInfo>>> locations = homePaths
-                    .GroupBy(path => path[0].Id.ToString(CultureInfo.InvariantCulture) + ":" +
-                        (path.Count > 1 ? path[1].Id.ToString(CultureInfo.InvariantCulture) : "省级"))
+                    .GroupBy(GetLocationKey)
                     .ToList();
+                List<CityInfo> studentPath = null;
                 if (locations.Count > 1)
+                    warn("本人真实户口所在地指向多个省份或地区，无法确定本人唯一归属，将按已知父母户籍地点列出。");
+                else if (homePaths.Count > 0)
+                    studentPath = homePaths[0];
+
+                List<List<CityInfo>> destinations = new List<List<CityInfo>>();
+                if (studentPath != null)
+                    destinations.Add(studentPath);
+                if (studentPath != null && studentPath.Count == 1)
+                    warn("本人户口所在地仅确定到省级，已放入“待确认地区”工作表。");
+
+                foreach (DataRow parentHome in rows.Where(row => GetText(row, "Title") != "本人"
+                    && GetText(row, "AddrType") == "户口所在地"))
                 {
-                    warn("本人真实户口所在地指向多个省份或地区，无法确定唯一归属，未导出该组。");
+                    string error;
+                    List<CityInfo> path = cityLookup.GetPath(GetInt(parentHome, "CityID", -1), out error);
+                    if (path == null)
+                    {
+                        warn(GetText(parentHome, "Title") + "户口所在地无法确定导出省份（" + error
+                            + "），原地址「" + GetText(parentHome, "Address") + "」。");
+                        continue;
+                    }
+                    // 本人所在省仍按本人户籍地市分表；跨省父母按各自实际地市分表。
+                    if (studentPath == null || path[0].Id != studentPath[0].Id)
+                        destinations.Add(path);
+                }
+
+                if (destinations.Count == 0)
+                {
+                    warn("本人及父母均没有可用的户籍行政区，未导出该组。");
                     continue;
                 }
 
-                List<CityInfo> studentPath = homePaths[0];
-                string province = studentPath[0].Name;
-                string region = studentPath.Count > 1 ? studentPath[1].Name : "待确认地区";
-                if (studentPath.Count == 1)
-                    warn("本人户口所在地仅确定到省级，已放入“待确认地区”工作表。");
-
-                FamilyVisitGroup group = new FamilyVisitGroup
+                // 父母同地仅列一行；省级线索已有具体市州承接时，不再重复增加待确认行。
+                IEnumerable<List<CityInfo>> targets = destinations.GroupBy(path => path[0].Id)
+                    .SelectMany(provincePaths => provincePaths.Any(path => path.Count > 1)
+                        ? provincePaths.Where(path => path.Count > 1) : provincePaths)
+                    .GroupBy(GetLocationKey).Select(location => location.First());
+                foreach (List<CityInfo> target in targets)
                 {
-                    Province = province,
-                    Region = region,
-                    Number = number,
-                    Name = name,
-                    School = JoinDistinct(Select(rows, "本人", "工作单位及职务").Select(row =>
+                    string province = target[0].Name;
+                    string region = target.Count > 1 ? target[1].Name : "待确认地区";
+                    FamilyVisitGroup group = new FamilyVisitGroup
                     {
-                        string school = GetText(row, "Address");
-                        string district = GetDistrict(row, province, cityLookup, warn, "本人学校");
-                        return school.Length == 0 ? district : school +
-                            (district.Length == 0 || district == school ? "" : "\r\n" + district);
-                    })),
-                    RegisteredAddress = GetParentDistricts(rows, "户口所在地", province, cityLookup, warn),
-                    HomeAddress = JoinDistinct(Select(rows, "本人", "经常居住地")
-                        .Select(row => GetDistrict(row, province, cityLookup, warn, "本人经常居住地"))),
-                    ParentWork = GetParentDistricts(rows, "工作单位及职务", province, cityLookup, warn),
-                    Phone = GetParentPhones(rows)
-                };
-                result.Groups.Add(group);
+                        Province = province,
+                        Region = region,
+                        Number = number,
+                        ObjectName = family.Key.Item2,
+                        Name = name,
+                        School = JoinDistinct(Select(rows, "本人", "工作单位及职务").Select(row =>
+                        {
+                            string school = GetText(row, "Address");
+                            string district = GetDistrict(row, province, cityLookup, warn, "本人学校");
+                            return school.Length == 0 ? district : school +
+                                (district.Length == 0 || district == school ? "" : "\r\n" + district);
+                        })),
+                        RegisteredAddress = GetParentDistricts(rows, "户口所在地", province, cityLookup, warn),
+                        HomeAddress = JoinDistinct(Select(rows, "本人", "经常居住地")
+                            .Select(row => GetDistrict(row, province, cityLookup, warn, "本人经常居住地"))),
+                        ParentWork = GetParentDistricts(rows, "工作单位及职务", province, cityLookup, warn),
+                        Phone = GetParentPhones(rows)
+                    };
+                    result.Groups.Add(group);
+                }
             }
 
             return result;
+        }
+
+        private static string GetLocationKey(List<CityInfo> path)
+        {
+            return path[0].Id.ToString(CultureInfo.InvariantCulture) + ":" +
+                (path.Count > 1 ? path[1].Id.ToString(CultureInfo.InvariantCulture) : "省级");
         }
 
         private static IEnumerable<DataRow> Select(IEnumerable<DataRow> rows, string title, string addressType)

@@ -23,6 +23,8 @@ internal static class Program
             TestSafeNames(Path.Combine(output, "names"));
             TestEmpty(Path.Combine(output, "empty"));
             TestDataQuality(Path.Combine(output, "quality"));
+            TestCrossProvinceParents(Path.Combine(output, "cross-province"));
+            TestParentLocationsWithoutStudentHome(Path.Combine(output, "parent-locations"));
             Console.WriteLine("PASS: " + assertions + " assertions; production exporter compiled and exercised with synthetic data.");
         }
         finally
@@ -68,15 +70,15 @@ internal static class Program
         Add(people, "0090", "亲属线索", "叔父", "户口所在地", "贵州省贵阳市南明区不应成组", 111);
 
         FamilyVisitExportResult result = FamilyVisitExportUtility.Export(people, cities, folder, 2026);
-        Assert(result.Files.Count == 3, "one file per student province");
+        Assert(result.Files.Count == 3, "one file per student/parent registration province");
         Assert(result.Warnings.Count > 0, "missing student household registration is reported");
         Assert(result.Files.All(File.Exists), "all reported files exist");
         List<ExcelWorksheet> sheets = OpenSheets(result.Files);
         ExcelWorksheet guiYang = sheets.Single(s => s.Name == "贵阳市");
         ExcelWorksheet zunYi = sheets.Single(s => s.Name == "遵义市");
-        Assert(CountRows(guiYang) == 2, "different student number/name groups are not merged");
+        Assert(CountRows(guiYang) == 3, "different student groups and known parent location are retained");
         Assert(CountRows(zunYi) == 1, "second municipality has one student");
-        Assert(guiYang.Cells[1, 1].Text.Contains("家访2人"), "title counts student groups");
+        Assert(guiYang.Cells[1, 1].Text.Contains("家访3人"), "title counts student groups");
         Assert(guiYang.MergedCells[1, 1] == "A1:I1", "sample title merge is preserved");
         string[] headers = { "序号", "姓名", "学校名称及所在区县", "户籍所在区县", "家庭所在区县", "父母单位所在区县", "联系电话", "政审编号", "备注" };
         for (int c = 1; c <= headers.Length; c++) Assert(guiYang.Cells[2, c].Text == headers[c - 1], "template header " + c);
@@ -98,13 +100,18 @@ internal static class Program
         string allText = string.Join("\n", sheets.SelectMany(s => s.Cells.Select(c => c.Text)));
         Assert(!allText.Contains("不应出现") && !allText.Contains("19999999999"), "deleted/copy/unapproved relationships excluded");
         Assert(sheets.Any(s => FindRowOrZero(s, "重庆考生", "0030") > 0), "direct-administered municipality exports");
+        ExcelWorksheet chengDu = sheets.Single(s => s.Name == "成都市");
+        Assert(FindRowOrZero(chengDu, "同名考生", "0001") > 0, "cross-province mother also adds student in her province");
+        Assert(FindRowOrZero(guiYang, "缺户籍考生", "0050") > 0, "known parent registration retained when student registration is absent");
+        Assert(FindRowOrZero(zunYi, "同名考生", "0001") == 0, "same-province parent in another municipality does not duplicate student");
         foreach (ExcelWorksheet sheet in sheets)
         {
             int count = CountRows(sheet);
             for (int r = 3; r < count + 3; r++) Assert(sheet.Cells[r, 1].GetValue<int>() == r - 2, "sequence starts at one in " + sheet.Name);
         }
-        int actualStudents = sheets.Sum(CountRows);
-        Assert(result.StudentCount == actualStudents, "summary matches exported student count");
+        int actualRows = sheets.Sum(CountRows);
+        Assert(result.RowCount == actualRows && actualRows == 8, "summary matches all cross-province output rows");
+        Assert(result.StudentCount == 7, "summary counts unique student keys across all provinces");
 
         Dictionary<string, byte[]> originalFiles = result.Files.ToDictionary(f => f, File.ReadAllBytes);
         FamilyVisitExportResult repeated = FamilyVisitExportUtility.Export(people, cities, folder, 2026);
@@ -136,7 +143,7 @@ internal static class Program
     private static void TestEmpty(string folder)
     {
         FamilyVisitExportResult result = FamilyVisitExportUtility.Export(NewPeople(), NewCities(), folder, 2026);
-        Assert(result.Files.Count == 0 && result.StudentCount == 0, "empty clues do not create empty workbook");
+        Assert(result.Files.Count == 0 && result.StudentCount == 0 && result.RowCount == 0, "empty clues do not create empty workbook");
     }
 
     private static void TestDataQuality(string folder)
@@ -167,6 +174,83 @@ internal static class Program
         Assert(CountRows(sheet) == 1, "duplicate real student registration produces one row");
         Assert(sheet.Cells[3, 4].Text.Contains("无法识别的父亲户籍原地址"), "unknown parent administrative district retains original source address");
         Assert(sheet.Cells[3, 3].Formula.Length == 0 && sheet.Cells[3, 3].Text.Contains("=SUM(1,2)"), "formula-like school source is exported as plain text");
+    }
+
+    private static void TestCrossProvinceParents(string folder)
+    {
+        DataTable cities = NewCities();
+        cities.Rows.Add(22, 2, "绵阳市", "绵阳");
+        cities.Rows.Add(221, 22, "涪城区", "涪城");
+        cities.Rows.Add(4, 0, "云南省", "云南");
+        cities.Rows.Add(41, 4, "昆明市", "昆明");
+        cities.Rows.Add(411, 41, "五华区", "五华");
+        cities.Rows.Add(5, 0, "吉林省", "吉林");
+        cities.Rows.Add(51, 5, "长春市", "长春");
+        DataTable people = NewPeople();
+        Add(people, "2000", "跨省考生", "本人", "户口所在地", "贵州省贵阳市南明区", 111);
+        Add(people, "2000", "跨省考生", "本人", "工作单位及职务", "省际中学", 111);
+        Add(people, "2000", "跨省考生", "本人", "经常居住地", "贵州省贵阳市南明区", 111);
+        Add(people, "2000", "跨省考生", "父亲", "户口所在地", "四川省成都市青羊区父户", 211);
+        Add(people, "2000", "跨省考生", "父亲", "户口所在地", "四川省成都市青羊区父户", 211);
+        Add(people, "2000", "跨省考生", "母亲", "户口所在地", "四川省成都市青羊区母户", 211);
+        Add(people, "2000", "跨省考生", "父亲", "户口所在地", "贵州省遵义市红花岗区父另户", 121);
+        Add(people, "2000", "跨省考生", "继父", "户口所在地", "四川省绵阳市涪城区继父户", 221);
+        Add(people, "2000", "跨省考生", "继父", "户口所在地", "重庆市渝中区继父另户", 31);
+        Add(people, "2000", "跨省考生", "继母", "户口所在地", "云南省昆明市五华区继母户", 411);
+        Add(people, "2000", "跨省考生", "父亲", "工作单位及职务", "贵州父单位", 111);
+        Add(people, "2000", "跨省考生", "母亲", "工作单位及职务", "四川母单位", 211);
+        Add(people, "2000", "跨省考生", "叔父", "户口所在地", "吉林省长春市叔父户", 51);
+        Add(people, "2000", "跨省考生", "父亲", "户口所在地", "吉林省长春市复制父户", 51, isReal: 0);
+        Add(people, "2000", "跨省考生", "母亲", "户口所在地", "吉林省长春市已删母户", 51, isDelete: 1);
+        FamilyVisitExportResult result = FamilyVisitExportUtility.Export(people, cities, folder, 2026);
+        Assert(result.Files.Count == 4, "student, parents, and step-parents all trigger their real registration provinces");
+        Assert(result.StudentCount == 1 && result.RowCount == 5, "one student is counted once despite five province/city rows");
+        List<ExcelWorksheet> sheets = OpenSheets(result.Files);
+        Assert(sheets.Count == 5 && sheets.Sum(CountRows) == 5, "each province/municipality/student key appears once");
+        Assert(sheets.All(s => CountRows(s) == 1 && FindRowOrZero(s, "跨省考生", "2000") == 3), "parent and duplicate clues do not add repeated student rows in one sheet");
+        Assert(!sheets.Any(s => s.Name == "遵义市" || s.Name == "长春市"), "same student province uses student's city; unrelated/deleted/copied relatives trigger no city");
+        Assert(sheets.Any(s => s.Name == "绵阳市") && sheets.Any(s => s.Name == "渝中区") && sheets.Any(s => s.Name == "昆明市"), "step-parent cross-province and multiple external cities are retained");
+        ExcelWorksheet guiYang = sheets.Single(s => s.Name == "贵阳市");
+        ExcelWorksheet chengDu = sheets.Single(s => s.Name == "成都市");
+        Assert(guiYang.Cells[3, 4].Text.Contains("四川省成都市") && guiYang.Cells[3, 4].Text.Contains("云南省昆明市"), "student province row retains all out-of-province parent registration with province names");
+        Assert(chengDu.Cells[3, 4].Text.Contains("父亲:成都市青羊区") && !chengDu.Cells[3, 4].Text.Contains("父亲:四川省成都市"), "parent province row formats its local parent registration relative to that province");
+        Assert(chengDu.Cells[3, 3].Text.Contains("贵州省贵阳市南明区") && chengDu.Cells[3, 5].Text.Contains("贵州省贵阳市南明区"), "external province row includes student's school and home province");
+        Assert(chengDu.Cells[3, 6].Text.Contains("父亲:贵州省贵阳市南明区") && chengDu.Cells[3, 6].Text.Contains("母亲:成都市青羊区"), "parent workplace districts are reformatted for each destination province");
+        Assert(sheets.All(s => s.Cells[1, 1].Text.Contains("家访1人") && s.Cells[3, 1].GetValue<int>() == 1), "each external city title and sequence reflect one local row");
+    }
+
+    private static void TestParentLocationsWithoutStudentHome(string folder)
+    {
+        DataTable people = NewPeople();
+        DataTable cities = NewCities();
+        Add(people, "2001", "无本人户籍考生", "本人", "工作单位及职务", "未知户籍中学", 111);
+        Add(people, "2001", "无本人户籍考生", "父亲", "户口所在地", "四川省成都市青羊区父户", 211);
+        Add(people, "2001", "无本人户籍考生", "母亲", "户口所在地", "四川省成都市青羊区母户", 211);
+        Add(people, "2002", "本人户籍冲突考生", "本人", "户口所在地", "贵州省贵阳市南明区", 111);
+        Add(people, "2002", "本人户籍冲突考生", "本人", "户口所在地", "四川省成都市青羊区", 211);
+        Add(people, "2002", "本人户籍冲突考生", "父亲", "户口所在地", "重庆市渝中区父户", 31);
+        Add(people, "2003", "仅省父母考生", "父亲", "户口所在地", "四川省", 2);
+        Add(people, "2004", "父母省市并存考生", "父亲", "户口所在地", "四川省", 2);
+        Add(people, "2004", "父母省市并存考生", "母亲", "户口所在地", "四川省成都市青羊区母户", 211);
+        Add(people, "3000", "同名当前\r\n曾用甲", "父亲", "户口所在地", "四川省成都市青羊区父户甲", 211);
+        Add(people, "3000", "同名当前\r\n曾用甲", "母亲", "户口所在地", "重庆市渝中区母户甲", 31);
+        Add(people, "3000", "同名当前\r\n曾用乙", "父亲", "户口所在地", "四川省成都市青羊区父户乙", 211);
+        Add(people, "3000", "同名当前\r\n曾用乙", "母亲", "户口所在地", "重庆市渝中区母户乙", 31);
+        FamilyVisitExportResult result = FamilyVisitExportUtility.Export(people, cities, folder, 2026);
+        Assert(result.Files.Count == 2 && result.RowCount == 8, "known parent locations survive missing/conflicting student home");
+        Assert(result.StudentCount == 6, "unique student count uses original ObjName rather than displayed first line");
+        List<ExcelWorksheet> sheets = OpenSheets(result.Files);
+        ExcelWorksheet chengDu = sheets.Single(s => s.Name == "成都市");
+        ExcelWorksheet pending = sheets.Single(s => s.Name == "待确认地区");
+        ExcelWorksheet chongQing = sheets.Single(s => s.Name == "渝中区");
+        Assert(FindRowOrZero(chengDu, "无本人户籍考生", "2001") > 0, "parents' shared city retains student once without own home");
+        Assert(FindRowOrZero(chongQing, "本人户籍冲突考生", "2002") > 0 && FindRowOrZero(chengDu, "本人户籍冲突考生", "2002") == 0, "conflicting own home is not guessed while known parent location remains");
+        Assert(FindRowOrZero(pending, "仅省父母考生", "2003") > 0, "province-only parent registration enters pending city");
+        Assert(FindRowOrZero(chengDu, "父母省市并存考生", "2004") > 0 && FindRowOrZero(pending, "父母省市并存考生", "2004") == 0, "known parent city avoids an additional province-only pending row");
+        Assert(Enumerable.Range(3, chengDu.Dimension.End.Row - 2).Count(r => chengDu.Cells[r, 2].Text == "同名当前" && chengDu.Cells[r, 8].Text == "3000") == 2, "same display name and number retain groups distinguished by original ObjName");
+        Assert(Enumerable.Range(3, chongQing.Dimension.End.Row - 2).Count(r => chongQing.Cells[r, 2].Text == "同名当前" && chongQing.Cells[r, 8].Text == "3000") == 2, "raw-ObjName groups both repeat in external province without increasing unique student count");
+        string warnings = string.Join("\n", result.Warnings);
+        Assert(warnings.Contains("无本人户籍考生") && warnings.Contains("本人户籍冲突考生") && warnings.Contains("仅省父母考生"), "partial locations and parent-only groups remain visibly warned");
     }
 
     private static List<ExcelWorksheet> OpenSheets(IEnumerable<string> files)

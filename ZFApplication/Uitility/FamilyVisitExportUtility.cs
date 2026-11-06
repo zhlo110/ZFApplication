@@ -14,6 +14,7 @@ namespace ZFApplication.Uitility
         public List<string> Files { get; private set; } = new List<string>();
         public List<string> Warnings { get; private set; } = new List<string>();
         public int StudentCount { get; internal set; }
+        public int RowCount { get; internal set; }
     }
 
     public static class FamilyVisitExportUtility
@@ -35,6 +36,10 @@ namespace ZFApplication.Uitility
             result.Warnings.AddRange(data.Warnings);
             if (data.Groups.Count == 0)
                 return result;
+
+            result.StudentCount = data.Groups.Select(group => Tuple.Create(group.Number, group.ObjectName))
+                .Distinct().Count();
+            result.RowCount = data.Groups.Count;
 
             Directory.CreateDirectory(outputFolder);
             StringComparer nameComparer = StringComparer.Create(CultureInfo.GetCultureInfo("zh-CN"), false);
@@ -70,7 +75,6 @@ namespace ZFApplication.Uitility
                         }
                     }
                     result.Files.Add(path);
-                    result.StudentCount += province.Count();
                 }
             }
             return result;

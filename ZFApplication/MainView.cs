@@ -783,7 +783,7 @@ namespace ZFApplication
                     string message = result.Files.Count == 0
                         ? "没有可导出的家访数据。"
                         : "家访表格导出完成，共 " + result.Files.Count + " 个省份、" + result.StudentCount
-                            + " 名招飞对象。\r\n保存位置：" + outputFolder;
+                            + " 名招飞对象、" + result.RowCount + " 条家访记录。\r\n保存位置：" + outputFolder;
                     if (result.Warnings.Count > 0)
                     {
                         foreach (string warning in result.Warnings)
